@@ -1,74 +1,127 @@
 import React, { useState } from 'react'
 import './Quiz.css'
-import QuizQuestion from '../core/QuizQuestion';
-
-interface QuizState {
-  questions: QuizQuestion[]
-  currentQuestionIndex: number
-  selectedAnswer: string | null
-  score: number
-}
+import QuizCore from "../core/QuizCore";
 
 const Quiz: React.FC = () => {
-  const initialQuestions: QuizQuestion[] = [
-    {
-      question: 'What is the capital of France?',
-      options: ['London', 'Berlin', 'Paris', 'Madrid'],
-      correctAnswer: 'Paris',
-    },
-  ];
-  const [state, setState] = useState<QuizState>({
-    questions: initialQuestions,
-    currentQuestionIndex: 0,  // Initialize the current question index.
-    selectedAnswer: null,  // Initialize the selected answer.
-    score: 0,  // Initialize the score.
-  });
 
-  const handleOptionSelect = (option: string): void => {
-    setState((prevState) => ({ ...prevState, selectedAnswer: option }));
-  }
+  const [quiz] = useState(new QuizCore());
+  const [currentQuestion, setCurrentQuestion] = useState(quiz.getCurrentQuestion());
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [finished, setFinished] = useState(false);
 
+  const handleOptionSelect = (option: string) => {
+    if (!currentQuestion || selectedAnswer) return;
 
-  const handleButtonClick = (): void => {
-    // Task3: Implement the logic for button click, such as moving to the next question.
-  } 
+    setSelectedAnswer(option);
+    quiz.answerQuestion(option);
+  };
 
-  const { questions, currentQuestionIndex, selectedAnswer, score } = state;
-  const currentQuestion = questions[currentQuestionIndex];
+  const handleNext = () => {
+    if (quiz.hasNextQuestion()) {
+      quiz.nextQuestion();
+      setCurrentQuestion(quiz.getCurrentQuestion());
+      setSelectedAnswer(null);
+    } else {
+      setFinished(true);
+    }
+  };
 
   if (!currentQuestion) {
+    return <h2>No question available</h2>;
+  }
+
+  if (finished) {
     return (
-      <div>
+      <div style={styles.container}>
         <h2>Quiz Completed</h2>
-        <p>Final Score: {score} out of {questions.length}</p>
+        <p>
+          Final Score: {quiz.getScore()} / {quiz.getTotalQuestions()}
+        </p>
       </div>
     );
   }
 
   return (
-    <div>
-      <h2>Quiz Question:</h2>
-      <p>{currentQuestion.question}</p>
-    
-      <h3>Answer Options:</h3>
-      <ul>
+    <div style={styles.container}>
+      <h2>Quiz Question</h2>
+
+      <p style={styles.question}>{currentQuestion.question}</p>
+
+      <ul style={styles.list}>
         {currentQuestion.options.map((option) => (
           <li
             key={option}
             onClick={() => handleOptionSelect(option)}
-            className={selectedAnswer === option ? 'selected' : ''}
+            style={{
+              ...styles.option,
+              ...(selectedAnswer === option ? styles.selected : {})
+            }}
           >
             {option}
           </li>
         ))}
       </ul>
 
-      <h3>Selected Answer:</h3>
-      <p>{selectedAnswer ?? 'No answer selected'}</p>
+      <p>
+        Selected: <b>{selectedAnswer ?? "None"}</b>
+      </p>
 
-      <button onClick={handleButtonClick}>Next Question</button>
+      <button
+        onClick={handleNext}
+        disabled={!selectedAnswer}
+        style={{
+          ...styles.button,
+          opacity: !selectedAnswer ? 0.5 : 1
+        }}
+      >
+        Next Question
+      </button>
     </div>
   );
+};
+
+const styles: { [key: string]: React.CSSProperties } = {
+  container: {
+    maxWidth: "500px",
+    margin: "40px auto",
+    padding: "20px",
+    borderRadius: "12px",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+    backgroundColor: "#ffffff",
+    textAlign: "center"
+  },
+
+  question: {
+    fontSize: "18px",
+    marginBottom: "15px"
+  },
+
+  list: {
+    listStyle: "none",
+    padding: 0
+  },
+
+  option: {
+    padding: "10px",
+    margin: "8px 0",
+    border: "1px solid #ccc",
+    borderRadius: "8px",
+    cursor: "pointer"
+  },
+
+  selected: {
+    backgroundColor: "#4dabf7",
+    color: "white"
+  },
+
+  button: {
+    marginTop: "15px",
+    padding: "10px 20px",
+    border: "none",
+    borderRadius: "8px",
+    backgroundColor: "#228be6",
+    color: "white"
+  }
 };
 
 export default Quiz;
